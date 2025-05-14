@@ -32,10 +32,11 @@ headers = {
     "device_id": secrets.device_id    # Replace with your actual device ID
 }
 
-
+# Functions
+#---------------------------------------------------------------------------
 
 def button_pressed(pin):
-    # Function to start upload on buttonpre
+    # Function to start upload when boot button is pressed
     # Ignore if upload already in progress
     if hasattr(button_pressed, 'upload_in_progress') and button_pressed.upload_in_progress:
         print('*** Upload already in progress, ignoring button press')
@@ -93,9 +94,8 @@ def button_pressed(pin):
         # Always clear the upload flag when done
         upload_in_progress = False
 
-
 def blink(loop,r=0,g=0,b=0):
-    # Simple blink function
+    # Simple blink function to make the leds blink
     for i in range(loop):
         led[0] = (g, r, b)
         led.write()
@@ -104,9 +104,8 @@ def blink(loop,r=0,g=0,b=0):
         led.write()
         time.sleep(0.2)
 
-
 def receiveEvent(sender, recipient, event):
-    # When OOCSI message is received, update the RTC and disconnect
+    # Function that runs when an OOCSI message is received, update the RTC time and disconnect
     print('from ', sender, ' -> ', event)
     if ("datetime") in event:
         print("found")
@@ -117,16 +116,11 @@ def receiveEvent(sender, recipient, event):
             o.unsubscribe('timechannel')
             o.stop()
 
-# Configure Wifi
-wlan = network.WLAN(network.STA_IF)
-print("MAC ADDRESS=",wlan.config('mac').hex())
-
 def connectWifi():
     # Wifi Connection function
     led.fill((0, 20, 0))  # Indicate trying to connect
     led.write()
     
-    wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
     
     if not wlan.isconnected():
@@ -154,10 +148,18 @@ def connectWifi():
     
     led.write()
 
+# WiFi
 #---------------------------------------------------------------------------
+
+# Configure Wifi
+wlan = network.WLAN(network.STA_IF)
+print("MAC ADDRESS=",wlan.config('mac').hex())
 
 # Connect to wifi
 connectWifi()
+
+# Hardware
+#---------------------------------------------------------------------------
 
 # Define the upload button and setup interrupt
 KEY = Pin(0,Pin.IN,Pin.PULL_UP) 
@@ -176,7 +178,6 @@ except Exception as e:
     print('*** RTC Error, type:',e)
     blink(1,r=20, b=20)
 
-
 # Connect to DHT11 sensor, Blink pink twice if not found
 try:
     sensor = dht.DHT11(Pin(6))
@@ -187,10 +188,17 @@ except Exception as e:
     blink(2,r=20, b=20)
 
 
+# Sync Clock with OOCSI
+#---------------------------------------------------------------------------
+
 if wlan.isconnected():
     # Connect to OOCSI server to sync clock
     o = OOCSI('msos/example/MicroPython_receiver_###', 'hello.oocsi.net')
     o.subscribe('timechannel', receiveEvent)
+
+
+# Create CSV
+#---------------------------------------------------------------------------
 
 # Setup file, and create one if it doesnt exist yet
 file_exists = csvfilename in os.listdir()
@@ -201,6 +209,7 @@ with open(csvfilename, "a") as file:
         file.close()
 
 # Loop
+#---------------------------------------------------------------------------
 while True:
 
     # Turn on the LED when connected to wifi
